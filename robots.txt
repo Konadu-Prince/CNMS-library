@@ -1,0 +1,25 @@
+User-agent: *
+Disallow: /php/
+Disallow: /includes/
+Disallow: /admin/
+Disallow: /dashboard.php
+Disallow: /login.php
+Disallow: /logout.php
+Disallow: /admin.php
+
+Sitemap: https://library.mlkhealthinstitute.edu.gh/sitemap.xml
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: Baiduspider
+Allow: /
