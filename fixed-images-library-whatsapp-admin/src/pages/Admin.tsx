@@ -47,7 +47,7 @@ function LoginGate({ onOk }: { onOk: (s: "server") => void }) {
         subtitle="Sign in to manage Top Readers, contact messages and library records."
         image={IMAGES.catalog}
       />
-      <section className="mx-auto grid max-w-5xl gap-8 px-4 py-12 lg:grid-cols-[1.1fr_1fr]">
+      <section className="mx-auto max-w-2xl px-4 py-12">
         <form onSubmit={submit} className="rounded-3xl border border-emerald-900/10 bg-white p-8 shadow-xl">
           <h2 className="text-2xl font-extrabold text-emerald-950">Staff sign-in</h2>
           <p className="mt-1 text-sm text-slate-500">
@@ -76,32 +76,6 @@ function LoginGate({ onOk }: { onOk: (s: "server") => void }) {
             {busy ? "Signing in…" : "Enter admin desk"}
           </button>
         </form>
-
-        <div className="rounded-3xl bg-emerald-900 p-8 text-emerald-50 shadow-xl">
-          <p className="text-xs font-bold uppercase tracking-[0.3em] text-amber-300">How to access</p>
-          <h3 className="mt-3 text-2xl font-extrabold text-white">Admin desk address</h3>
-          <ol className="mt-5 space-y-4 text-sm leading-relaxed">
-            <li>
-              <b className="text-white">1.</b> Open{" "}
-              <code className="rounded bg-white/10 px-2 py-0.5 font-mono text-amber-200">#/admin</code>{" "}
-              in the address bar, or tap <b>Librarian Admin</b> in the site footer.
-            </li>
-            <li>
-              <b className="text-white">2.</b> Sign in with the credentials provided by the library administrator.
-            </li>
-            <li>
-              <b className="text-white">3.</b> To persist Top Readers on the server, start the API:
-              <div className="mt-2 rounded-xl bg-black/20 p-4 font-mono text-xs">
-                node server/index.js
-              </div>
-              then visit <code className="font-mono text-amber-200">http://localhost:8787/api/health</code>
-            </li>
-          </ol>
-          <p className="mt-6 text-xs text-emerald-200">
-            The administrator can change the login credentials with the <code>ADMIN_USER</code> and <code>ADMIN_PASS</code>{" "}
-            environment variables on the server.
-          </p>
-        </div>
       </section>
     </div>
   );
