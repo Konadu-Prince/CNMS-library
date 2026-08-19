@@ -293,18 +293,13 @@ export const api = {
         if (err instanceof ApiError && err.status === 429) throw err;
       }
     }
-    if (username.trim() === "librarian" && password === "cnms2026") {
-      setAdminToken("local-admin");
-      emit();
-      return { source: "local" };
-    }
-    throw new ApiError("Incorrect username or password.", 401);
+    throw new ApiError("The backend is unavailable. Start the API and try again.", 503);
   },
 
   logout() {
     const token = getAdminToken();
     setAdminToken("");
-    if (API_BASE && token && token !== "local-admin") {
+    if (API_BASE && token) {
       void request("/api/admin/logout", { method: "POST", retries: 0 }).catch(() => undefined);
     }
     emit();

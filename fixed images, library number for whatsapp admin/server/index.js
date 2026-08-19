@@ -20,6 +20,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 8787);
 const ADMIN_USER = process.env.ADMIN_USER || "librarian";
 const ADMIN_PASS = process.env.ADMIN_PASS || "cnms2026";
+const adminTokens = new Map();
+const loginHits = new Map();
 const DATA_DIR = path.join(__dirname, "data");
 const DB_FILE = path.join(DATA_DIR, "db.json");
 const STARTED_AT = Date.now();
@@ -263,9 +265,39 @@ function validateMessage(b) {
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type,X-Request-Id,X-Client",
+  "Access-Control-Allow-Headers": "Content-Type,X-Request-Id,X-Client,X-Admin-Token",
   "Access-Control-Max-Age": "86400",
 };
+
+function issueAdminToken() {
+  const token = crypto.randomBytes(32).toString("hex");
+  adminTokens.set(token, Date.now() + 8 * 60 * 60 * 1000);
+  return token;
+}
+
+function isAdmin(req) {
+  const token = String(req.headers["x-admin-token"] || "");
+  const expiresAt = adminTokens.get(token);
+  if (!expiresAt) return false;
+  if (expiresAt <= Date.now()) {
+    adminTokens.delete(token);
+    return false;
+  }
+  return true;
+}
+
+function loginLocked(ip) {
+  const now = Date.now();
+  const attempts = (loginHits.get(ip) || []).filter((time) => now - time < 120_000);
+  loginHits.set(ip, attempts);
+  return attempts.length >= 5;
+}
+
+function recordLoginFail(ip) {
+  const attempts = loginHits.get(ip) || [];
+  attempts.push(Date.now());
+  loginHits.set(ip, attempts);
+}
 
 function send(res, status, payload, reqId) {
   const body = JSON.stringify(payload);
@@ -678,7 +710,7 @@ server.listen(PORT, () => {
   console.log(`     POST /api/sessions  /api/messages  /api/admin/login`);
   console.log(`     Admin desk:  #/admin`);
   console.log(`     Username:    ${ADMIN_USER}`);
-  console.log(`     Password:    ${ADMIN_PASS}\n`);
+  console.log(`     Credentials: configured via server environment\n`);
 });
 
 for (const sig of ["SIGINT", "SIGTERM"]) {

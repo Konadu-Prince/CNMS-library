@@ -349,7 +349,7 @@ export default function TopReaders() {
               <h3 className="font-extrabold text-emerald-950">🔐 Librarian Admin Desk</h3>
               <p className="mt-1 text-xs text-slate-600">
                 Edit or delete sessions, clear a week, restore sample data and read the contact inbox.
-                Open <code className="font-mono">#/admin</code> and sign in as <b>librarian</b> / <b>cnms2026</b>.
+                Open <code className="font-mono">#/admin</code> and sign in with your librarian credentials.
               </p>
               <a
                 href="#/admin"

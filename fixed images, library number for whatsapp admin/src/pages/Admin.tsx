@@ -10,7 +10,7 @@ type Tab = "overview" | "sessions" | "messages" | "access";
 
 export default function Admin() {
   const [authed, setAuthed] = useState(() => api.isAdmin());
-  const [source, setSource] = useState<"server" | "local" | "">("");
+  const [source, setSource] = useState<"server" | "">("");
 
   if (!authed) {
     return <LoginGate onOk={(s) => { setSource(s); setAuthed(true); }} />;
@@ -19,8 +19,8 @@ export default function Admin() {
   return <Desk source={source} onLogout={() => { api.logout(); setAuthed(false); }} />;
 }
 
-function LoginGate({ onOk }: { onOk: (s: "server" | "local") => void }) {
-  const [username, setUsername] = useState("librarian");
+function LoginGate({ onOk }: { onOk: (s: "server") => void }) {
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -87,12 +87,7 @@ function LoginGate({ onOk }: { onOk: (s: "server" | "local") => void }) {
               in the address bar, or tap <b>Librarian Admin</b> in the site footer.
             </li>
             <li>
-              <b className="text-white">2.</b> Sign in with the staff account:
-              <div className="mt-2 rounded-xl bg-black/20 p-4 font-mono text-sm">
-                Username: <span className="text-amber-300">librarian</span>
-                <br />
-                Password: <span className="text-amber-300">cnms2026</span>
-              </div>
+              <b className="text-white">2.</b> Sign in with the credentials provided by the library administrator.
             </li>
             <li>
               <b className="text-white">3.</b> To persist Top Readers on the server, start the API:
@@ -103,7 +98,7 @@ function LoginGate({ onOk }: { onOk: (s: "server" | "local") => void }) {
             </li>
           </ol>
           <p className="mt-6 text-xs text-emerald-200">
-            Change these credentials with the <code>ADMIN_USER</code> and <code>ADMIN_PASS</code>{" "}
+            The administrator can change the login credentials with the <code>ADMIN_USER</code> and <code>ADMIN_PASS</code>{" "}
             environment variables on the server.
           </p>
         </div>
@@ -112,7 +107,7 @@ function LoginGate({ onOk }: { onOk: (s: "server" | "local") => void }) {
   );
 }
 
-function Desk({ source, onLogout }: { source: string; onLogout: () => void }) {
+function Desk({ source, onLogout }: { source: "server"; onLogout: () => void }) {
   const [tab, setTab] = useState<Tab>("overview");
   const overview = useApi(() => api.overview(), []);
   const sessions = useApi(() => api.sessions("all"), []);
@@ -149,7 +144,7 @@ function Desk({ source, onLogout }: { source: string; onLogout: () => void }) {
           </div>
           <div className="flex items-center gap-2">
             <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">
-              {source === "server" ? "Signed in via API" : "Signed in (local / offline)"}
+              {source === "server" ? "Signed in via API" : "Not connected"}
             </span>
             <button
               onClick={onLogout}
@@ -452,11 +447,6 @@ function AccessHelp() {
             • Direct hash: <code className="rounded bg-emerald-50 px-1.5 font-mono">#/admin</code>
           </li>
         </ul>
-        <div className="mt-5 rounded-2xl bg-emerald-900 p-5 font-mono text-sm text-amber-200">
-          username: librarian
-          <br />
-          password: cnms2026
-        </div>
       </div>
       <div className="rounded-3xl border border-emerald-900/10 bg-white p-8 shadow-sm">
         <h2 className="text-xl font-extrabold text-emerald-950">Top Readers API</h2>
