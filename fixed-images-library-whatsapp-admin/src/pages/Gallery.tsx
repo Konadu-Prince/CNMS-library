@@ -42,6 +42,7 @@ export default function Gallery() {
 
   const { data, refetch } = useApi(() => api.listPhotos(), []);
   const photos = data ?? [];
+  const canManage = api.isAdmin();
   const groupPhoto = photos.find((p) => p.type === "group") ?? null;
   const interior = photos.filter((p) => p.type !== "group");
 
@@ -153,19 +154,23 @@ export default function Gallery() {
               <p className="text-xs text-slate-500">The official group photograph · shared with the whole college community</p>
             </div>
             <div className="flex gap-2">
-              <button
-                onClick={() => openDialog("group")}
-                className="rounded-full bg-emerald-800 px-5 py-2 text-sm font-bold text-white hover:bg-emerald-700"
-              >
-                {groupPhoto ? "Replace group photo" : "Add group photo"}
-              </button>
-              {groupPhoto && (
-                <button
-                  onClick={() => remove(groupPhoto.id)}
-                  className="rounded-full border border-emerald-900/15 bg-white px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50"
-                >
-                  Remove
-                </button>
+              {canManage && (
+                <>
+                  <button
+                    onClick={() => openDialog("group")}
+                    className="rounded-full bg-emerald-800 px-5 py-2 text-sm font-bold text-white hover:bg-emerald-700"
+                  >
+                    {groupPhoto ? "Replace group photo" : "Add group photo"}
+                  </button>
+                  {groupPhoto && (
+                    <button
+                      onClick={() => remove(groupPhoto.id)}
+                      className="rounded-full border border-emerald-900/15 bg-white px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -173,7 +178,7 @@ export default function Gallery() {
           <div className="grid gap-0 md:grid-cols-[1.6fr_1fr]">
             <button
               className="relative block w-full"
-              onClick={() => (groupPhoto ? setActive(0) : openDialog("group"))}
+              onClick={() => groupPhoto && setActive(0)}
               title={groupPhoto ? "View full size" : "Click to add the official group photo"}
             >
               <img
@@ -181,7 +186,7 @@ export default function Gallery() {
                 alt="CNMS nursing students in white and green uniforms gathered at the front of the library"
                 className="max-h-[560px] w-full object-cover"
               />
-              {!groupPhoto && (
+              {!groupPhoto && canManage && (
                 <span className="absolute inset-0 grid place-items-center bg-emerald-950/55">
                   <span className="rounded-full bg-amber-400 px-6 py-3 text-sm font-bold text-emerald-950 shadow-xl">
                     Click to add the official group photo
@@ -223,19 +228,18 @@ export default function Gallery() {
                 Reading hall, bookshelves, newspaper table, service desk and reprographics corner.
               </p>
             </div>
-            <button
-              onClick={() => openDialog("photo")}
-              className="rounded-full bg-emerald-800 px-5 py-2 text-sm font-bold text-white hover:bg-emerald-700"
-            >
-              + Add library photos
-            </button>
+            {canManage && (
+              <button
+                onClick={() => openDialog("photo")}
+                className="rounded-full bg-emerald-800 px-5 py-2 text-sm font-bold text-white hover:bg-emerald-700"
+              >
+                + Add library photos
+              </button>
+            )}
           </div>
 
           {interior.length === 0 ? (
-            <button
-              onClick={() => openDialog("photo")}
-              className="mt-6 grid w-full place-items-center rounded-3xl border-2 border-dashed border-emerald-900/20 bg-emerald-50/50 p-12 text-center"
-            >
+            <div className="mt-6 grid w-full place-items-center rounded-3xl border-2 border-dashed border-emerald-900/20 bg-emerald-50/50 p-12 text-center">
               <div className="pointer-events-none">
                 <p className="text-5xl">🖼️</p>
                 <p className="mt-3 text-lg font-bold text-emerald-900">No interior photos added yet</p>
@@ -245,7 +249,7 @@ export default function Gallery() {
                   device and synced to the library server.
                 </p>
               </div>
-            </button>
+            </div>
           ) : (
             <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {interior.map((p, i) => (
@@ -259,9 +263,11 @@ export default function Gallery() {
                   </button>
                   <div className="flex items-center justify-between gap-2 px-4 py-3">
                     <span className="truncate text-sm font-semibold text-emerald-900">{p.caption}</span>
-                    <button onClick={() => remove(p.id)} title="Remove photo" className="shrink-0 text-xs text-slate-300 hover:text-red-500">
-                      ✕
-                    </button>
+                    {canManage && (
+                      <button onClick={() => remove(p.id)} title="Remove photo" className="shrink-0 text-xs text-slate-300 hover:text-red-500">
+                        ✕
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -381,7 +387,7 @@ export default function Gallery() {
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-white">
               <p className="font-semibold">{allImages[active].cap}</p>
               <div className="flex gap-2">
-                {allImages[active].id && (
+                {canManage && allImages[active].id && (
                   <button className="rounded-full bg-red-500/90 px-4 py-2 text-sm" onClick={() => remove(allImages[active].id!)}>
                     Remove
                   </button>

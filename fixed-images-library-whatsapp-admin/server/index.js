@@ -598,6 +598,7 @@ const server = http.createServer(async (req, res) => {
         return ok(res, db.photos, reqId);
       }
       if (req.method === "POST") {
+        if (!isAdmin(req)) return fail(res, 401, "Librarian login required.", reqId);
         const body = await readBody(req, 4 * 1024 * 1024); // up to 4 MB
         if (!body || typeof body !== "object")
           return fail(res, 400, "Invalid JSON body.", reqId);
@@ -624,6 +625,7 @@ const server = http.createServer(async (req, res) => {
 
     const photo = p.match(/^\/api\/photos\/([\w-]+)$/);
     if (photo && req.method === "DELETE") {
+      if (!isAdmin(req)) return fail(res, 401, "Librarian login required.", reqId);
       const before = db.photos.length;
       db.photos = db.photos.filter((x) => x.id !== photo[1]);
       if (before === db.photos.length) return fail(res, 404, "Photo not found.", reqId);
