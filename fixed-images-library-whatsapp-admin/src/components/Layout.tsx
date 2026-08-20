@@ -108,9 +108,11 @@ export function Navbar({ route }: { route: string }) {
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
           <a href="#/" className="flex items-center gap-3">
-            <div className="grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-emerald-800 to-emerald-600 text-xl font-bold text-white shadow-md">
-              📚
-            </div>
+            <img
+               src="/logo.jpg"
+               alt="CNMS Library Logo"
+               className="h-12 w-12 object-contain"
+            />
             <div className="leading-tight">
               <p className="text-lg font-extrabold tracking-tight text-emerald-900">
                 CNMS-LIBRARY
