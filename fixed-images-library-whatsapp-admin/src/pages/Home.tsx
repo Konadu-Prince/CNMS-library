@@ -393,26 +393,7 @@ export default function Home() {
           </div>
         </div>
       </section>
-      {/* Results Portal */}
-<div>
-  <p className="text-sm font-bold uppercase tracking-wider text-amber-300">
-    Results Portal
-  </p>
-
-  <a
-    href="https://portal.healthtraining.gov.gh/login"
-    target="_blank"
-    rel="noopener noreferrer"
-    className="mt-3 inline-flex items-center gap-2 rounded-xl bg-amber-400 px-5 py-3 font-bold text-emerald-950 transition hover:bg-amber-300"
-  >
-    Check your results
-    <span aria-hidden="true">↗</span>
-  </a>
-
-  <p className="mt-2 text-xs text-emerald-200">
-    Access the student results portal.
-  </p>
-</div>
+      
     </div>
   );
 }

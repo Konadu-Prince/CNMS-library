@@ -181,9 +181,11 @@ export default function Contact() {
               title="Map"
               className="h-64 w-full"
               loading="lazy"
-              src="https://www.google.com/maps?q=College%20of%20Nursing%20and%20Midwifery%20Sunyani&output=embed"
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3957.085601329854!2d-2.3119373241382544!3d7.34428419266439!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xfdacf5318f1400f%3A0xc10370db58ed0e9a!2sNursing%20%26%20Midwifery%20Training%20College%20-%20Sunyani!5e0!3m2!1sen!2sgh!4v1787329959806!5m2!1sen!2sgh"
+
             />
           </div>
+
         </div>
       </section>
     </div>
