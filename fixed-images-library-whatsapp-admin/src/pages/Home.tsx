@@ -326,6 +326,93 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+            {/* Find Us / Exact School Location */}
+      <section className="bg-emerald-50/70 py-16">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="mb-10 text-center">
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-emerald-700">
+              Find Us
+            </p>
+
+            <h2 className="mt-3 text-3xl font-extrabold text-emerald-950 sm:text-4xl">
+              Visit the College of Nursing & Midwifery
+            </h2>
+
+            <p className="mx-auto mt-3 max-w-2xl text-slate-600">
+              Find the College of Nursing and Midwifery, Sunyani using the exact
+              location shown on Google Maps.
+            </p>
+          </div>
+
+          <div className="grid overflow-hidden rounded-3xl bg-white shadow-xl lg:grid-cols-[1.4fr_0.6fr]">
+            {/* Exact Google Maps Location */}
+            <div className="h-[400px] min-h-[350px] w-full lg:h-[500px]">
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3957.085601329854!2d-2.3119373241382544!3d7.34428419266439!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xfdacf5318f1400f%3A0xc10370db58ed0e9a!2sNursing%20%26%20Midwifery%20Training%20College%20-%20Sunyani!5e0!3m2!1sen!2sgh!4v1787329959806!5m2!1sen!2sgh"
+                width="600"
+                height="450"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="strict-origin-when-cross-origin"
+                title="Exact location of Nursing & Midwifery Training College - Sunyani"
+                className="h-full w-full"
+              />
+            </div>
+
+            {/* Location Information */}
+            <div className="flex flex-col justify-center bg-emerald-900 p-8 text-white sm:p-10">
+              <span className="inline-flex w-fit rounded-full bg-amber-400 px-3 py-1 text-xs font-bold uppercase tracking-widest text-emerald-950">
+                📍 Our Location
+              </span>
+
+              <h3 className="mt-5 text-2xl font-extrabold">
+                Nursing & Midwifery Training College
+              </h3>
+
+              <p className="mt-3 leading-relaxed text-emerald-100">
+                Sunyani, Ghana
+              </p>
+
+              <p className="mt-4 text-sm leading-relaxed text-emerald-200">
+                The CNMS Library is located within the College of Nursing and
+                Midwifery campus. Use the map to identify the college and plan
+                your visit.
+              </p>
+
+              <a
+                href="https://www.google.com/maps/search/?api=1&query=Nursing%20%26%20Midwifery%20Training%20College%20-%20Sunyani"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-7 inline-flex items-center justify-center rounded-full bg-amber-400 px-6 py-3 font-bold text-emerald-950 transition hover:bg-amber-300"
+              >
+                📍 Open in Google Maps →
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+      {/* Results Portal */}
+<div>
+  <p className="text-sm font-bold uppercase tracking-wider text-amber-300">
+    Results Portal
+  </p>
+
+  <a
+    href="https://portal.healthtraining.gov.gh/login"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="mt-3 inline-flex items-center gap-2 rounded-xl bg-amber-400 px-5 py-3 font-bold text-emerald-950 transition hover:bg-amber-300"
+  >
+    Check your results
+    <span aria-hidden="true">↗</span>
+  </a>
+
+  <p className="mt-2 text-xs text-emerald-200">
+    Access the student results portal.
+  </p>
+</div>
     </div>
   );
 }

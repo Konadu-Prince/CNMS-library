@@ -181,6 +181,14 @@ export function Navbar({ route }: { route: string }) {
           </ul>
 
           <div className="flex items-center gap-2">
+             <a
+               href="https://portal.healthtraining.gov.gh/login"
+               target="_blank"
+               rel="noopener noreferrer"
+               className="hidden rounded-full bg-amber-400 px-4 py-2 text-sm font-bold text-emerald-950 shadow-sm transition hover:bg-amber-300 sm:inline-flex"
+              >
+              🎓 Check Results ↗
+             </a>
             <ThemeToggle />
             <button
               aria-label="Toggle menu"
