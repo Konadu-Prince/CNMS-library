@@ -1,7 +1,37 @@
 import { useEffect, useState } from "react";
 import { IMAGES, SERVICES, HOURS } from "../data";
-import { api, prettyRange, WEEKLY_GOAL_MINUTES } from "../api";
+import { api, DEFAULT_LIBRARY_CONTENT, prettyRange, WEEKLY_GOAL_MINUTES } from "../api";
 import { useApi } from "../hooks/useApi";
+
+function LibrarianSpotlight() {
+  const { data } = useApi(() => api.content(), []);
+  const profile = data?.profile || DEFAULT_LIBRARY_CONTENT.profile;
+  const isPublished = Boolean(profile.published);
+
+  if (!isPublished) return null;
+
+  return (
+    <section className="mx-auto max-w-7xl px-4 py-12">
+      <div className="grid gap-8 rounded-3xl border border-emerald-900/10 bg-white p-6 shadow-xl md:grid-cols-[0.9fr_1.1fr] md:p-8">
+        <div className="flex items-center justify-center">
+          <div className="grid h-52 w-52 place-items-center overflow-hidden rounded-full border-4 border-emerald-200 bg-emerald-50 shadow-lg">
+            {profile.image ? (
+              <img src={profile.image} alt={profile.name} className="h-full w-full object-cover" />
+            ) : (
+              <span className="text-7xl">👩🏾‍🏫</span>
+            )}
+          </div>
+        </div>
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-emerald-700">Library Leader</p>
+          <h2 className="mt-3 text-3xl font-extrabold text-emerald-950">{profile.name}</h2>
+          <p className="mt-1 text-lg font-semibold text-emerald-700">{profile.title}</p>
+          <p className="mt-4 text-slate-600">{profile.bio}</p>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 function TopReadersPreview() {
   const { data, loading } = useApi(() => api.leaderboard("this"), []);
@@ -107,6 +137,43 @@ function Counter({ end, label, suffix = "" }: { end: number; label: string; suff
   );
 }
 
+function PublicDocuments() {
+  const { data } = useApi(() => api.content(), []);
+  const documents = [...(data?.documents ?? [])].sort((a, b) => a.title.localeCompare(b.title));
+
+  if (documents.length === 0) return null;
+
+  return (
+    <section className="mx-auto max-w-7xl px-4 py-16">
+      <div className="rounded-3xl border border-emerald-900/10 bg-emerald-50/60 p-8 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-emerald-700">Library Resources</p>
+            <h2 className="mt-2 text-3xl font-extrabold text-emerald-950">Public documents</h2>
+          </div>
+        </div>
+        <div className="mt-6 space-y-3">
+          {documents.map((doc) => (
+            <a
+              key={doc.id}
+              href={doc.fileData}
+              download={doc.fileName}
+              className="flex flex-col justify-between gap-2 rounded-2xl border border-emerald-900/10 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:flex-row sm:items-center"
+            >
+              <div>
+                <div className="font-extrabold text-emerald-900">{doc.title}</div>
+                <div className="text-xs text-slate-500">{doc.fileName}</div>
+                {doc.description && <div className="mt-1 text-sm text-slate-600">{doc.description}</div>}
+              </div>
+              <span className="rounded-full bg-emerald-800 px-3 py-1 text-xs font-bold text-white">Download</span>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function Home() {
   const [i, setI] = useState(0);
   useEffect(() => {
@@ -206,6 +273,9 @@ export default function Home() {
       </section>
 
       {/* Overview */}
+      <LibrarianSpotlight />
+      <PublicDocuments />
+
       <section className="mx-auto max-w-7xl px-4 pb-16">
         <div className="grid items-center gap-12 md:grid-cols-2">
           <div>

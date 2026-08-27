@@ -1,12 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "../components/Layout";
 import { IMAGES } from "../data";
-import { api, ApiError, PROGRAMS, Session } from "../api";
+import { api, ApiError, DEFAULT_LIBRARY_CONTENT, PROGRAMS, Session } from "../api";
 import { useApi, useConnection } from "../hooks/useApi";
 
 const fmt = (m: number) => (m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`);
 
-type Tab = "overview" | "sessions" | "messages" | "access";
+type Tab = "overview" | "sessions" | "messages" | "content" | "access";
 
 export default function Admin() {
   const [authed, setAuthed] = useState(() => api.isAdmin());
@@ -103,6 +103,7 @@ function Desk({ source, onLogout }: { source: "server"; onLogout: () => void }) 
               ["overview", "Overview"],
               ["sessions", "Top Readers"],
               ["messages", "Inbox"],
+              ["content", "Content"],
               ["access", "Access"],
             ] as const).map(([k, label]) => (
               <button
@@ -165,6 +166,8 @@ function Desk({ source, onLogout }: { source: "server"; onLogout: () => void }) 
             }}
           />
         )}
+
+        {tab === "content" && <ContentAdmin />}
 
         {tab === "access" && <AccessHelp />}
       </section>
@@ -347,6 +350,355 @@ function EditSession({
           <button className="rounded-full bg-emerald-800 px-5 py-2 text-sm font-bold text-white">Save</button>
         </div>
       </form>
+    </div>
+  );
+}
+
+function ContentAdmin() {
+  const { data, refetch } = useApi(() => api.content(), []);
+  const content = data || DEFAULT_LIBRARY_CONTENT;
+  const [notice, setNotice] = useState<{ profile?: string; staff?: string; document?: string; error?: string }>({});
+
+  const [profileForm, setProfileForm] = useState({
+    name: content.profile.name,
+    title: content.profile.title,
+    bio: content.profile.bio,
+    image: content.profile.image,
+    published: content.profile.published,
+  });
+  const [staffForm, setStaffForm] = useState({
+    id: "",
+    name: "",
+    role: "",
+    bio: "",
+    image: "",
+  });
+  const [docForm, setDocForm] = useState({
+    id: "",
+    title: "",
+    description: "",
+    fileName: "",
+    fileType: "",
+    fileData: "",
+  });
+
+  useEffect(() => {
+    if (content.profile) {
+      setProfileForm({
+        name: content.profile.name,
+        title: content.profile.title,
+        bio: content.profile.bio,
+        image: content.profile.image,
+        published: content.profile.published,
+      });
+    }
+  }, [content.profile]);
+
+  const staffList = [...(content.staff ?? [])].sort((a, b) => a.name.localeCompare(b.name));
+  const documentList = [...(content.documents ?? [])].sort((a, b) => a.title.localeCompare(b.title));
+
+  const handleFileToDataUrl = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("File could not be read."));
+      reader.readAsDataURL(file);
+    });
+
+  const saveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await api.saveProfile(profileForm);
+      setNotice((prev) => ({ ...prev, error: undefined, profile: profileForm.published ? "Profile published to the homepage." : "Profile saved as draft." }));
+      refetch();
+    } catch (err) {
+      setNotice((prev) => ({ ...prev, error: err instanceof Error ? err.message : "Profile could not be saved." }));
+    }
+  };
+
+  const saveStaff = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await api.saveStaffMember({ ...staffForm, id: staffForm.id || crypto.randomUUID() });
+      setNotice((prev) => ({ ...prev, error: undefined, staff: "Staff profile saved successfully." }));
+      setStaffForm({ id: "", name: "", role: "", bio: "", image: "" });
+      refetch();
+    } catch (err) {
+      setNotice((prev) => ({ ...prev, error: err instanceof Error ? err.message : "Staff profile could not be saved." }));
+    }
+  };
+
+  const saveDocument = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!docForm.fileData || !docForm.title.trim()) return;
+    try {
+      await api.saveDocument({
+        id: docForm.id || crypto.randomUUID(),
+        title: docForm.title,
+        description: docForm.description,
+        fileName: docForm.fileName || docForm.title,
+        fileType: docForm.fileType,
+        fileData: docForm.fileData,
+        createdAt: Date.now(),
+      });
+      setNotice((prev) => ({ ...prev, error: undefined, document: "Document uploaded and ready for public access." }));
+      setDocForm({ id: "", title: "", description: "", fileName: "", fileType: "", fileData: "" });
+      refetch();
+    } catch (err) {
+      setNotice((prev) => ({ ...prev, error: err instanceof Error ? err.message : "Document could not be uploaded." }));
+    }
+  };
+
+  const profileStatus = profileForm.published ? "Published" : "Draft";
+
+  return (
+    <div className="mt-8 space-y-8">
+      {notice.error && (
+        <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+          {notice.error}
+        </p>
+      )}
+      <div className="rounded-3xl border border-emerald-900/10 bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-xl font-extrabold text-emerald-950">Library profile</h2>
+          <span
+            className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] ${
+              profileForm.published
+                ? "bg-emerald-100 text-emerald-800"
+                : "bg-amber-100 text-amber-700"
+            }`}
+          >
+            {profileStatus}
+          </span>
+        </div>
+        {notice.profile && (
+          <p className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800">
+            {notice.profile}
+          </p>
+        )}
+        <form onSubmit={saveProfile} className="mt-4 grid gap-4 md:grid-cols-2">
+          <label className="block text-sm font-semibold text-slate-700 md:col-span-2">
+            Full name
+            <input
+              value={profileForm.name}
+              onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+              className="mt-1 w-full rounded-xl border border-emerald-900/15 px-3 py-2"
+            />
+          </label>
+          <label className="block text-sm font-semibold text-slate-700">
+            Role/title
+            <input
+              value={profileForm.title}
+              onChange={(e) => setProfileForm({ ...profileForm, title: e.target.value })}
+              className="mt-1 w-full rounded-xl border border-emerald-900/15 px-3 py-2"
+            />
+          </label>
+          <label className="block text-sm font-semibold text-slate-700">
+            Profile photo URL or data URL
+            <input
+              value={profileForm.image}
+              onChange={(e) => setProfileForm({ ...profileForm, image: e.target.value })}
+              className="mt-1 w-full rounded-xl border border-emerald-900/15 px-3 py-2"
+              placeholder="Paste image URL or data URL"
+            />
+          </label>
+          <label className="block text-sm font-semibold text-slate-700 md:col-span-2">
+            Short about text
+            <textarea
+              value={profileForm.bio}
+              onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
+              rows={4}
+              className="mt-1 w-full rounded-xl border border-emerald-900/15 px-3 py-2"
+            />
+          </label>
+          <label className="flex items-center gap-3 rounded-xl border border-emerald-900/10 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900 md:col-span-2">
+            <input
+              type="checkbox"
+              checked={profileForm.published}
+              onChange={(e) => setProfileForm({ ...profileForm, published: e.target.checked })}
+              className="h-4 w-4 accent-emerald-700"
+            />
+            Publish this librarian profile on the homepage
+          </label>
+          <div className="md:col-span-2 flex justify-end">
+            <button type="submit" className="rounded-full bg-emerald-800 px-5 py-2 font-bold text-white">Save profile</button>
+          </div>
+        </form>
+      </div>
+
+      <div className="rounded-3xl border border-emerald-900/10 bg-white p-6 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-xl font-extrabold text-emerald-950">Staff profiles</h2>
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-600">
+            {staffList.length} listed
+          </span>
+        </div>
+        {notice.staff && (
+          <p className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800">
+            {notice.staff}
+          </p>
+        )}
+        <form onSubmit={saveStaff} className="mt-4 grid gap-4 md:grid-cols-2">
+          <label className="block text-sm font-semibold text-slate-700">
+            Name
+            <input
+              value={staffForm.name}
+              onChange={(e) => setStaffForm({ ...staffForm, name: e.target.value })}
+              className="mt-1 w-full rounded-xl border border-emerald-900/15 px-3 py-2"
+            />
+          </label>
+          <label className="block text-sm font-semibold text-slate-700">
+            Role
+            <input
+              value={staffForm.role}
+              onChange={(e) => setStaffForm({ ...staffForm, role: e.target.value })}
+              className="mt-1 w-full rounded-xl border border-emerald-900/15 px-3 py-2"
+            />
+          </label>
+          <label className="block text-sm font-semibold text-slate-700 md:col-span-2">
+            Bio
+            <textarea
+              value={staffForm.bio}
+              onChange={(e) => setStaffForm({ ...staffForm, bio: e.target.value })}
+              rows={3}
+              className="mt-1 w-full rounded-xl border border-emerald-900/15 px-3 py-2"
+            />
+          </label>
+          <label className="block text-sm font-semibold text-slate-700 md:col-span-2">
+            Profile image URL or data URL
+            <input
+              value={staffForm.image}
+              onChange={(e) => setStaffForm({ ...staffForm, image: e.target.value })}
+              className="mt-1 w-full rounded-xl border border-emerald-900/15 px-3 py-2"
+            />
+          </label>
+          <div className="md:col-span-2 flex justify-end">
+            <button type="submit" className="rounded-full bg-emerald-800 px-5 py-2 font-bold text-white">Add staff profile</button>
+          </div>
+        </form>
+
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          {staffList.length === 0 && (
+            <div className="md:col-span-2 rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/60 p-6 text-center text-sm text-slate-500">
+              No staff profiles yet. Add the first team member above.
+            </div>
+          )}
+          {staffList.map((member) => (
+            <div key={member.id} className="rounded-2xl border border-emerald-900/10 bg-emerald-50/40 p-4">
+              <div className="flex items-center gap-3">
+                <div className="grid h-12 w-12 place-items-center overflow-hidden rounded-full bg-white text-lg shadow-sm">
+                  {member.image ? <img src={member.image} alt={member.name} className="h-full w-full object-cover" /> : "👤"}
+                </div>
+                <div>
+                  <div className="font-extrabold text-emerald-950">{member.name}</div>
+                  <div className="text-xs text-slate-500">{member.role}</div>
+                </div>
+              </div>
+              <p className="mt-3 text-sm text-slate-700">{member.bio}</p>
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setStaffForm({ id: member.id, name: member.name, role: member.role, bio: member.bio, image: member.image })}
+                  className="text-xs font-bold text-emerald-800"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => { await api.deleteStaffMember(member.id); refetch(); }}
+                  className="text-xs font-bold text-red-600"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-3xl border border-emerald-900/10 bg-white p-6 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-xl font-extrabold text-emerald-950">Library documents</h2>
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-600">
+            {documentList.length} files
+          </span>
+        </div>
+        {notice.document && (
+          <p className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800">
+            {notice.document}
+          </p>
+        )}
+        <form onSubmit={saveDocument} className="mt-4 grid gap-4 md:grid-cols-2">
+          <label className="block text-sm font-semibold text-slate-700">
+            Document title
+            <input
+              value={docForm.title}
+              onChange={(e) => setDocForm({ ...docForm, title: e.target.value })}
+              className="mt-1 w-full rounded-xl border border-emerald-900/15 px-3 py-2"
+            />
+          </label>
+          <label className="block text-sm font-semibold text-slate-700">
+            File
+            <input
+              type="file"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const dataUrl = await handleFileToDataUrl(file);
+                setDocForm({
+                  ...docForm,
+                  fileName: file.name,
+                  fileType: file.type || "application/octet-stream",
+                  fileData: dataUrl,
+                });
+              }}
+              className="mt-1 w-full rounded-xl border border-emerald-900/15 px-3 py-2"
+            />
+            {docForm.fileName && (
+              <span className="mt-2 block text-xs font-medium text-emerald-700">Selected file: {docForm.fileName}</span>
+            )}
+          </label>
+          <label className="block text-sm font-semibold text-slate-700 md:col-span-2">
+            Short description
+            <textarea
+              value={docForm.description}
+              onChange={(e) => setDocForm({ ...docForm, description: e.target.value })}
+              rows={3}
+              className="mt-1 w-full rounded-xl border border-emerald-900/15 px-3 py-2"
+            />
+          </label>
+          <div className="md:col-span-2 flex justify-end">
+            <button type="submit" className="rounded-full bg-emerald-800 px-5 py-2 font-bold text-white">Upload and publish</button>
+          </div>
+        </form>
+
+        <div className="mt-6 space-y-3">
+          {documentList.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/60 p-6 text-center text-sm text-slate-500">
+              No public documents yet. Upload the first item above.
+            </div>
+          )}
+          {documentList.map((doc) => (
+            <div key={doc.id} className="flex flex-col justify-between gap-3 rounded-2xl border border-emerald-900/10 bg-emerald-50/40 p-4 sm:flex-row sm:items-center">
+              <div>
+                <div className="font-extrabold text-emerald-950">{doc.title}</div>
+                <div className="text-xs text-slate-500">{doc.fileName} · {doc.fileType}</div>
+                {doc.description && <div className="mt-1 text-sm text-slate-600">{doc.description}</div>}
+              </div>
+              <div className="flex gap-2">
+                <a href={doc.fileData} download={doc.fileName} className="text-xs font-bold text-emerald-800">Open</a>
+                <button
+                  type="button"
+                  onClick={async () => { await api.deleteDocument(doc.id); refetch(); }}
+                  className="text-xs font-bold text-red-600"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

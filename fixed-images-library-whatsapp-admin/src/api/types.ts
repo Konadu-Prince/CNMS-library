@@ -48,6 +48,38 @@ export type ContactMessage = {
   status?: "new" | "read" | "replied";
 };
 
+export type LibraryProfile = {
+  name: string;
+  title: string;
+  bio: string;
+  image: string;
+  published: boolean;
+};
+
+export type StaffProfile = {
+  id: string;
+  name: string;
+  role: string;
+  bio: string;
+  image: string;
+};
+
+export type LibraryDocument = {
+  id: string;
+  title: string;
+  description: string;
+  fileName: string;
+  fileType: string;
+  fileData: string;
+  createdAt: number;
+};
+
+export type LibraryContent = {
+  profile: LibraryProfile;
+  staff: StaffProfile[];
+  documents: LibraryDocument[];
+};
+
 export type ApiEnvelope<T> = {
   ok: boolean;
   data?: T;

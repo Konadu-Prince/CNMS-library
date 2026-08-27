@@ -1,12 +1,7 @@
 import { PageHeader } from "../components/Layout";
 import { IMAGES } from "../data";
-
-const STAFF = [
-  { name: "College Librarian", role: "Head of Library Services", icon: "👩🏾‍🏫" },
-  { name: "Senior Library Assistant", role: "Cataloguing & Acquisition", icon: "🧑🏾‍💼" },
-  { name: "E-Resource Officer", role: "Digital & Data Management", icon: "🧑🏾‍💻" },
-  { name: "Circulation Attendant", role: "Client Service Desk", icon: "🧑🏾‍🔧" },
-];
+import { api } from "../api";
+import { useApi } from "../hooks/useApi";
 
 const RULES = [
   "Silence must be observed in all reading areas.",
@@ -18,6 +13,10 @@ const RULES = [
 ];
 
 export default function About() {
+  const { data } = useApi(() => api.content(), []);
+  const staff = [...(data?.staff ?? [])].sort((a, b) => a.name.localeCompare(b.name));
+  const documents = [...(data?.documents ?? [])].sort((a, b) => a.title.localeCompare(b.title));
+
   return (
     <div>
       <PageHeader
@@ -69,17 +68,46 @@ export default function About() {
             Library Team
           </h2>
           <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {STAFF.map((s) => (
+            {staff.map((s) => (
               <div
-                key={s.name}
+                key={s.id}
                 className="rounded-2xl bg-white p-6 text-center shadow-sm transition hover:shadow-xl"
               >
-                <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-emerald-100 text-4xl">
-                  {s.icon}
+                <div className="mx-auto grid h-20 w-20 place-items-center overflow-hidden rounded-full bg-emerald-100 text-4xl shadow-sm">
+                  {s.image ? (
+                    <img src={s.image} alt={s.name} className="h-full w-full object-cover" />
+                  ) : (
+                    "👤"
+                  )}
                 </div>
                 <h3 className="mt-4 font-extrabold text-emerald-900">{s.name}</h3>
                 <p className="text-sm text-slate-500">{s.role}</p>
+                {s.bio && <p className="mt-2 text-xs text-slate-600">{s.bio}</p>}
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white py-14">
+        <div className="mx-auto max-w-7xl px-4">
+          <h2 className="text-3xl font-extrabold text-emerald-950">Library documents</h2>
+          <div className="mt-6 space-y-3">
+            {documents.length === 0 && <p className="text-slate-500">No public documents have been uploaded yet.</p>}
+            {documents.map((doc) => (
+              <a
+                key={doc.id}
+                href={doc.fileData}
+                download={doc.fileName}
+                className="flex flex-col justify-between gap-2 rounded-2xl border border-emerald-900/10 bg-emerald-50/50 p-4 text-left shadow-sm sm:flex-row sm:items-center"
+              >
+                <div>
+                  <div className="font-extrabold text-emerald-900">{doc.title}</div>
+                  <div className="text-xs text-slate-500">{doc.fileName}</div>
+                  {doc.description && <div className="mt-1 text-sm text-slate-600">{doc.description}</div>}
+                </div>
+                <span className="rounded-full bg-emerald-800 px-3 py-1 text-xs font-bold text-white">Download</span>
+              </a>
             ))}
           </div>
         </div>

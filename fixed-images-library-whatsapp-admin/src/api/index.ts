@@ -22,7 +22,14 @@ import type { Photo } from "./local";
 
 export * from "./types";
 export { API_BASE } from "./http";
-export { prettyRange, weekBounds, iso, toCSV, pointsOf } from "./local";
+export {
+  prettyRange,
+  weekBounds,
+  iso,
+  toCSV,
+  pointsOf,
+  DEFAULT_LIBRARY_CONTENT,
+} from "./local";
 export type { Photo } from "./local";
 
 /* ------------------------- connection monitor ------------------------- */
@@ -177,39 +184,45 @@ export const api = {
   },
 
   async deleteSession(id: string): Promise<void> {
-    local.deleteSession(id);
-    emit();
     if (API_BASE) {
       try {
         await request(`/api/sessions/${id}`, { method: "DELETE", retries: 1 });
-      } catch {
-        /* already gone locally; server reconciles on next reset */
+        setState("online");
+      } catch (err) {
+        setState("offline");
+        throw err;
       }
     }
+    local.deleteSession(id);
+    emit();
   },
 
   async clearScope(scope: Scope): Promise<void> {
-    local.clearScope(scope);
-    emit();
     if (API_BASE) {
       try {
         await request(`/api/sessions?scope=${scope}`, { method: "DELETE" });
-      } catch {
-        /* ignore */
+        setState("online");
+      } catch (err) {
+        setState("offline");
+        throw err;
       }
     }
+    local.clearScope(scope);
+    emit();
   },
 
   async resetAll(): Promise<void> {
-    local.resetAll();
-    emit();
     if (API_BASE) {
       try {
         await request(`/api/sessions?scope=reset`, { method: "DELETE" });
-      } catch {
-        /* ignore */
+        setState("online");
+      } catch (err) {
+        setState("offline");
+        throw err;
       }
     }
+    local.resetAll();
+    emit();
   },
 
   async sendMessage(m: ContactMessage): Promise<{ synced: boolean }> {
@@ -314,40 +327,122 @@ export const api = {
   },
 
   async markMessage(id: string, status: ContactMessage["status"]) {
-    local.updateMessageStatus(id, status);
-    emit();
     if (API_BASE) {
       try {
         await request(`/api/messages/${id}`, { method: "PATCH", body: { status } });
-      } catch {
-        /* ignore */
+        setState("online");
+      } catch (err) {
+        setState("offline");
+        throw err;
       }
     }
+    local.updateMessageStatus(id, status);
+    emit();
   },
 
   async deleteMessage(id: string) {
-    local.deleteMessage(id);
-    emit();
     if (API_BASE) {
       try {
         await request(`/api/messages/${id}`, { method: "DELETE" });
-      } catch {
-        /* ignore */
+        setState("online");
+      } catch (err) {
+        setState("offline");
+        throw err;
       }
     }
+    local.deleteMessage(id);
+    emit();
+  },
+
+  async content() {
+    return tryRemote<any>("/api/content", () => local.listContent());
+  },
+
+  async saveProfile(profile: any) {
+    if (API_BASE) {
+      try {
+        await request("/api/content/profile", { method: "POST", body: profile });
+        setState("online");
+      } catch (err) {
+        setState("offline");
+        throw err;
+      }
+    }
+    local.saveProfile(profile);
+    emit();
+    return profile;
+  },
+
+  async saveStaffMember(member: any) {
+    if (API_BASE) {
+      try {
+        await request("/api/content/staff", { method: "POST", body: member });
+        setState("online");
+      } catch (err) {
+        setState("offline");
+        throw err;
+      }
+    }
+    local.saveStaffMember(member);
+    emit();
+    return member;
+  },
+
+  async deleteStaffMember(id: string) {
+    if (API_BASE) {
+      try {
+        await request(`/api/content/staff/${id}`, { method: "DELETE" });
+        setState("online");
+      } catch (err) {
+        setState("offline");
+        throw err;
+      }
+    }
+    local.deleteStaffMember(id);
+    emit();
+  },
+
+  async saveDocument(doc: any) {
+    if (API_BASE) {
+      try {
+        await request("/api/content/documents", { method: "POST", body: doc });
+        setState("online");
+      } catch (err) {
+        setState("offline");
+        throw err;
+      }
+    }
+    local.saveDocument(doc);
+    emit();
+    return doc;
+  },
+
+  async deleteDocument(id: string) {
+    if (API_BASE) {
+      try {
+        await request(`/api/content/documents/${id}`, { method: "DELETE" });
+        setState("online");
+      } catch (err) {
+        setState("offline");
+        throw err;
+      }
+    }
+    local.deleteDocument(id);
+    emit();
   },
 
   async updateSession(id: string, patch: Partial<Session>) {
-    local.updateSession(id, patch);
-    emit();
     if (API_BASE) {
       try {
         await request(`/api/sessions/${id}`, { method: "PATCH", body: patch });
         setState("online");
-      } catch {
+      } catch (err) {
         setState("offline");
+        throw err;
       }
     }
+    local.updateSession(id, patch);
+    emit();
   },
 
   async overview() {

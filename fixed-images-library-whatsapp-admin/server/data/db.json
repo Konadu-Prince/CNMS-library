@@ -529,5 +529,38 @@
     }
   ],
   "photos": [],
+  "content": {
+    "profile": {
+      "name": "Updated Librarian",
+      "title": "Head of Library Services",
+      "bio": "Fresh bio",
+      "image": "https://example.com/pic.jpg",
+      "published": false
+    },
+    "staff": [
+      {
+        "id": "staff-3",
+        "name": "Miss Efua Owusu",
+        "role": "E-Resource Officer",
+        "bio": "Manages electronic resources and digital access support.",
+        "image": ""
+      },
+      {
+        "id": "staff-2",
+        "name": "Mr. Kofi Mensah",
+        "role": "Senior Library Assistant",
+        "bio": "Handles acquisitions, cataloguing and collection growth.",
+        "image": ""
+      },
+      {
+        "id": "validate-staff",
+        "name": "Test Staff",
+        "role": "Validation Role",
+        "bio": "Test staff bio",
+        "image": "https://example.com/staff.jpg"
+      }
+    ],
+    "documents": []
+  },
   "version": 1
 }

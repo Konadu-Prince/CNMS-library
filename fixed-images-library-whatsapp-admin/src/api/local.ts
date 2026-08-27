@@ -5,10 +5,14 @@
  */
 import {
   ContactMessage,
+  LibraryContent,
+  LibraryDocument,
+  LibraryProfile,
   NewSession,
   Row,
   Scope,
   Session,
+  StaffProfile,
   Stats,
   WEEKLY_GOAL_MINUTES,
   PROGRAMS,
@@ -17,6 +21,7 @@ import {
 const KEY = "cnms-db-v2";
 const OUTBOX = "cnms-outbox-v1";
 const PHOTOS = "cnms-photos-v1";
+const CONTENT_KEY = "cnms-content-v1";
 
 export type Photo = {
   id: string;
@@ -26,7 +31,42 @@ export type Photo = {
   uploadedAt: number;
 };
 
-type LocalDB = { sessions: Session[]; messages: ContactMessage[] };
+type LocalDB = { sessions: Session[]; messages: ContactMessage[]; content: LibraryContent };
+
+export const DEFAULT_LIBRARY_CONTENT: LibraryContent = {
+  profile: {
+    name: "Mrs. Akua Boadu",
+    title: "College Librarian",
+    bio:
+      "A dedicated information professional supporting teaching, learning and evidence-based nursing practice across the College.",
+    image: "",
+    published: false,
+  },
+  staff: [
+    {
+      id: "staff-1",
+      name: "Mrs. Akua Boadu",
+      role: "College Librarian",
+      bio: "Leads library services, research support and user education.",
+      image: "",
+    },
+    {
+      id: "staff-2",
+      name: "Mr. Kofi Mensah",
+      role: "Senior Library Assistant",
+      bio: "Handles acquisitions, cataloguing and collection growth.",
+      image: "",
+    },
+    {
+      id: "staff-3",
+      name: "Miss Efua Owusu",
+      role: "E-Resource Officer",
+      bio: "Manages electronic resources and digital access support.",
+      image: "",
+    },
+  ],
+  documents: [],
+};
 
 export const iso = (d: Date | string | number) => {
   const x = new Date(d);
@@ -57,18 +97,62 @@ export const pointsOf = (minutes: number, books: number) => Math.round(minutes +
 function read(): LocalDB {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw) as LocalDB;
+    if (raw) {
+      const parsed = JSON.parse(raw) as LocalDB;
+      return {
+        sessions: parsed.sessions || [],
+        messages: parsed.messages || [],
+        content: normalizeContent(parsed.content || DEFAULT_LIBRARY_CONTENT),
+      };
+    }
   } catch {
     /* corrupted store — reseed */
   }
-  const fresh = { sessions: seed(), messages: [] };
+  const fresh = { sessions: seed(), messages: [], content: { ...DEFAULT_LIBRARY_CONTENT, staff: [...DEFAULT_LIBRARY_CONTENT.staff], documents: [] } };
   write(fresh);
   return fresh;
+}
+
+function normalizeContent(content?: Partial<LibraryContent>): LibraryContent {
+  const safe = content || {};
+  return {
+    profile: {
+      name: safe.profile?.name || DEFAULT_LIBRARY_CONTENT.profile.name,
+      title: safe.profile?.title || DEFAULT_LIBRARY_CONTENT.profile.title,
+      bio: safe.profile?.bio || DEFAULT_LIBRARY_CONTENT.profile.bio,
+      image: safe.profile?.image || DEFAULT_LIBRARY_CONTENT.profile.image,
+      published: Boolean(safe.profile?.published),
+    },
+    staff: Array.isArray(safe.staff)
+      ? safe.staff.map((member, idx) => ({
+          id: member.id || `staff-${idx + 1}`,
+          name: member.name || `Staff ${idx + 1}`,
+          role: member.role || "Library Staff",
+          bio: member.bio || "",
+          image: member.image || "",
+        }))
+      : [...DEFAULT_LIBRARY_CONTENT.staff],
+    documents: Array.isArray(safe.documents)
+      ? safe.documents
+          .map((doc) => ({
+            id: doc.id || crypto.randomUUID(),
+            title: doc.title || "Untitled document",
+            description: doc.description || ""
+            ,
+            fileName: doc.fileName || "document",
+            fileType: doc.fileType || "application/octet-stream",
+            fileData: doc.fileData || "",
+            createdAt: doc.createdAt || Date.now(),
+          }))
+          .sort((a, b) => a.title.localeCompare(b.title))
+      : [],
+  };
 }
 
 function write(db: LocalDB) {
   try {
     localStorage.setItem(KEY, JSON.stringify(db));
+    localStorage.setItem(CONTENT_KEY, JSON.stringify(db.content));
   } catch {
     /* quota exceeded — ignore */
   }
@@ -237,6 +321,62 @@ export function deleteMessage(id: string) {
   const db = read();
   db.messages = db.messages.filter((m) => m.id !== id);
   write(db);
+}
+
+export function listContent(): LibraryContent {
+  try {
+    const raw = localStorage.getItem(CONTENT_KEY);
+    const parsed = raw ? JSON.parse(raw) : read().content;
+    return normalizeContent(parsed);
+  } catch {
+    return { ...DEFAULT_LIBRARY_CONTENT, staff: [...DEFAULT_LIBRARY_CONTENT.staff], documents: [] };
+  }
+}
+
+export function saveContent(content: LibraryContent) {
+  const db = read();
+  db.content = normalizeContent(content);
+  write(db);
+  return db.content;
+}
+
+export function saveProfile(profile: LibraryProfile) {
+  const db = read();
+  db.content.profile = { ...profile, published: Boolean(profile.published) };
+  write(db);
+  return db.content.profile;
+}
+
+export function saveStaffMember(member: StaffProfile) {
+  const db = read();
+  const next = db.content.staff.filter((m) => m.id !== member.id);
+  next.push({ ...member, id: member.id || crypto.randomUUID() });
+  db.content.staff = next.sort((a, b) => a.name.localeCompare(b.name));
+  write(db);
+  return db.content.staff;
+}
+
+export function deleteStaffMember(id: string) {
+  const db = read();
+  db.content.staff = db.content.staff.filter((m) => m.id !== id);
+  write(db);
+  return db.content.staff;
+}
+
+export function saveDocument(doc: LibraryDocument) {
+  const db = read();
+  const next = db.content.documents.filter((d) => d.id !== doc.id);
+  next.push({ ...doc, id: doc.id || crypto.randomUUID() });
+  db.content.documents = next.sort((a, b) => a.title.localeCompare(b.title));
+  write(db);
+  return db.content.documents;
+}
+
+export function deleteDocument(id: string) {
+  const db = read();
+  db.content.documents = db.content.documents.filter((d) => d.id !== id);
+  write(db);
+  return db.content.documents;
 }
 
 /* ----------------------------- photos ----------------------------- */

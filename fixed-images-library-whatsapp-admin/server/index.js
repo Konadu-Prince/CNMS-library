@@ -30,9 +30,81 @@ const STARTED_AT = Date.now();
 /*  Storage layer — atomic JSON persistence with in-memory cache       */
 /* ------------------------------------------------------------------ */
 
-const EMPTY_DB = { sessions: [], messages: [], announcements: [], photos: [], version: 1 };
+const EMPTY_DB = {
+  sessions: [],
+  messages: [],
+  announcements: [],
+  photos: [],
+  content: {
+    profile: {
+      name: "Mrs. Akua Boadu",
+      title: "College Librarian",
+      bio: "A dedicated information professional supporting teaching, learning and evidence-based nursing practice across the College.",
+      image: "",
+      published: false,
+    },
+    staff: [
+      {
+        id: "staff-1",
+        name: "Mrs. Akua Boadu",
+        role: "College Librarian",
+        bio: "Leads library services, research support and user education.",
+        image: "",
+      },
+      {
+        id: "staff-2",
+        name: "Mr. Kofi Mensah",
+        role: "Senior Library Assistant",
+        bio: "Handles acquisitions, cataloguing and collection growth.",
+        image: "",
+      },
+      {
+        id: "staff-3",
+        name: "Miss Efua Owusu",
+        role: "E-Resource Officer",
+        bio: "Manages electronic resources and digital access support.",
+        image: "",
+      },
+    ],
+    documents: [],
+  },
+  version: 1,
+};
 let db = null;
 let writeQueue = Promise.resolve();
+
+function normalizeContentPayload(payload) {
+  const base = payload && typeof payload === "object" ? payload : {};
+  const staff = Array.isArray(base.staff) ? base.staff : EMPTY_DB.content.staff;
+  const documents = Array.isArray(base.documents) ? base.documents : [];
+  return {
+    profile: {
+      name: String(base.profile?.name || EMPTY_DB.content.profile.name).slice(0, 120),
+      title: String(base.profile?.title || EMPTY_DB.content.profile.title).slice(0, 120),
+      bio: String(base.profile?.bio || EMPTY_DB.content.profile.bio).slice(0, 700),
+      image: String(base.profile?.image || EMPTY_DB.content.profile.image),
+      published: Boolean(base.profile?.published),
+    },
+    staff: staff.map((person, index) => ({
+      id: String(person?.id || `staff-${index + 1}`),
+      name: String(person?.name || "Library Staff").slice(0, 120),
+      role: String(person?.role || "Library Staff").slice(0, 120),
+      bio: String(person?.bio || "").slice(0, 500),
+      image: String(person?.image || ""),
+    })).sort((a, b) => a.name.localeCompare(b.name)),
+    documents: documents
+      .map((doc) => ({
+        id: String(doc?.id || crypto.randomUUID()),
+        title: String(doc?.title || "Untitled document").slice(0, 200),
+        description: String(doc?.description || "").slice(0, 500),
+        fileName: String(doc?.fileName || "document").slice(0, 200),
+        fileType: String(doc?.fileType || "application/octet-stream").slice(0, 120),
+        fileData: String(doc?.fileData || ""),
+        createdAt: Number(doc?.createdAt || Date.now()),
+      }))
+      .sort((a, b) => a.title.localeCompare(b.title)),
+  };
+}
 
 function ensureDB(raw) {
   const next = { ...EMPTY_DB, ...(raw || {}) };
@@ -40,6 +112,7 @@ function ensureDB(raw) {
   next.messages = Array.isArray(next.messages) ? next.messages : [];
   next.announcements = Array.isArray(next.announcements) ? next.announcements : [];
   next.photos = Array.isArray(next.photos) ? next.photos : [];
+  next.content = normalizeContentPayload(next.content);
   return next;
 }
 
@@ -592,6 +665,95 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
+    if (p === "/api/content") {
+      if (req.method === "GET") return ok(res, normalizeContentPayload(db.content), reqId);
+      if (req.method === "POST") {
+        if (!isAdmin(req)) return fail(res, 401, "Librarian login required.", reqId);
+        const body = await readBody(req);
+        db.content = normalizeContentPayload(body);
+        await persist();
+        return ok(res, db.content, reqId, 201);
+      }
+    }
+
+    if (p === "/api/content/profile") {
+      if (req.method === "POST") {
+        if (!isAdmin(req)) return fail(res, 401, "Librarian login required.", reqId);
+        const body = await readBody(req);
+        db.content.profile = {
+          name: String(body.name || db.content.profile.name).slice(0, 120),
+          title: String(body.title || db.content.profile.title).slice(0, 120),
+          bio: String(body.bio || db.content.profile.bio).slice(0, 700),
+          image: String(body.image || db.content.profile.image),
+          published: Boolean(body.published),
+        };
+        await persist();
+        return ok(res, db.content.profile, reqId, 201);
+      }
+    }
+
+    if (p === "/api/content/staff") {
+      if (req.method === "GET") return ok(res, [...db.content.staff].sort((a, b) => a.name.localeCompare(b.name)), reqId);
+      if (req.method === "POST") {
+        if (!isAdmin(req)) return fail(res, 401, "Librarian login required.", reqId);
+        const body = await readBody(req);
+        const item = {
+          id: String(body.id || crypto.randomUUID()),
+          name: String(body.name || "Library Staff").slice(0, 120),
+          role: String(body.role || "Library Staff").slice(0, 120),
+          bio: String(body.bio || "").slice(0, 500),
+          image: String(body.image || ""),
+        };
+        const existing = db.content.staff.findIndex((s) => s.id === item.id);
+        if (existing >= 0) db.content.staff[existing] = item;
+        else db.content.staff.push(item);
+        db.content.staff = [...db.content.staff].sort((a, b) => a.name.localeCompare(b.name));
+        await persist();
+        return ok(res, item, reqId, 201);
+      }
+    }
+
+    const staffOne = p.match(/^\/api\/content\/staff\/([^/]+)$/);
+    if (staffOne && req.method === "DELETE") {
+      if (!isAdmin(req)) return fail(res, 401, "Librarian login required.", reqId);
+      db.content.staff = db.content.staff.filter((x) => x.id !== staffOne[1]);
+      await persist();
+      return ok(res, { id: staffOne[1], removed: true }, reqId);
+    }
+
+    if (p === "/api/content/documents") {
+      if (req.method === "GET") return ok(res, [...db.content.documents].sort((a, b) => a.title.localeCompare(b.title)), reqId);
+      if (req.method === "POST") {
+        if (!isAdmin(req)) return fail(res, 401, "Librarian login required.", reqId);
+        const body = await readBody(req);
+        const item = {
+          id: String(body.id || crypto.randomUUID()),
+          title: String(body.title || "Untitled document").slice(0, 200),
+          description: String(body.description || "").slice(0, 500),
+          fileName: String(body.fileName || "document").slice(0, 200),
+          fileType: String(body.fileType || "application/octet-stream").slice(0, 120),
+          fileData: String(body.fileData || ""),
+          createdAt: Number(body.createdAt || Date.now()),
+        };
+        if (!item.title.trim()) return fail(res, 422, "Document title is required.", reqId);
+        if (!item.fileData) return fail(res, 422, "Document file is required.", reqId);
+        const existing = db.content.documents.findIndex((d) => d.id === item.id);
+        if (existing >= 0) db.content.documents[existing] = item;
+        else db.content.documents.push(item);
+        db.content.documents = [...db.content.documents].sort((a, b) => a.title.localeCompare(b.title));
+        await persist();
+        return ok(res, item, reqId, 201);
+      }
+    }
+
+    const docOne = p.match(/^\/api\/content\/documents\/([^/]+)$/);
+    if (docOne && req.method === "DELETE") {
+      if (!isAdmin(req)) return fail(res, 401, "Librarian login required.", reqId);
+      db.content.documents = db.content.documents.filter((x) => x.id !== docOne[1]);
+      await persist();
+      return ok(res, { id: docOne[1], removed: true }, reqId);
+    }
+
     /* ---- community photos (stored as data URLs) ---- */
     if (p === "/api/photos") {
       if (req.method === "GET") {
@@ -691,6 +853,7 @@ function seedDB() {
   return {
     ...EMPTY_DB,
     sessions,
+    content: normalizeContentPayload(EMPTY_DB.content),
     announcements: [
       {
         id: "evt-friday",
